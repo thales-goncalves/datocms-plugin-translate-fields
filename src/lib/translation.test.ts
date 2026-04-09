@@ -1,4 +1,4 @@
-import { getTranslation } from './translation'
+import { getTranslation, getStructuredTextTranslation } from './translation'
 import { TranslationFormat, TranslationService } from './types'
 
 const tranlationOptions = {
@@ -88,5 +88,76 @@ describe('getTranslation', () => {
         translationService: 'test' as TranslationService,
       }),
     ).rejects.toThrow('No translation service added in the settings')
+  })
+})
+
+describe('getStructuredTextTranslation', () => {
+  it('should translate text spans containing soft line breaks', async () => {
+    const slateValue = [
+      {
+        type: 'paragraph',
+        children: [
+          {
+            text: 'Line one\nLine two\nLine three',
+          },
+        ],
+      },
+    ]
+
+    const result = await getStructuredTextTranslation(
+      slateValue,
+      tranlationOptions,
+    )
+
+    expect(result[0].children[0].text).toBe(
+      'Translated Line one\nLine two\nLine three',
+    )
+  })
+
+  it('should translate simple text spans', async () => {
+    const slateValue = [
+      {
+        type: 'paragraph',
+        children: [
+          {
+            text: 'Hello world',
+          },
+        ],
+      },
+    ]
+
+    const result = await getStructuredTextTranslation(
+      slateValue,
+      tranlationOptions,
+    )
+
+    expect(result[0].children[0].text).toBe('Translated Hello world')
+  })
+
+  it('should translate text inside link nodes', async () => {
+    const slateValue = [
+      {
+        type: 'paragraph',
+        children: [
+          { text: 'Click ' },
+          {
+            type: 'link',
+            url: 'https://example.com',
+            children: [{ text: 'here' }],
+          },
+          { text: ' please' },
+        ],
+      },
+    ]
+
+    const result = await getStructuredTextTranslation(
+      slateValue,
+      tranlationOptions,
+    )
+
+    expect(result[0].children[0].text).toBe('Translated Click ')
+    expect(result[0].children[1].children[0].text).toBe('Translated here')
+    expect(result[0].children[1].url).toBe('https://example.com')
+    expect(result[0].children[2].text).toBe('Translated  please')
   })
 })
